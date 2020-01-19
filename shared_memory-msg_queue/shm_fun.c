@@ -7,6 +7,8 @@
 
 #include<stdio.h>
 #include <sys/sem.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
 #include<stdlib.h>
 #define SHMSIZE 1024
 /*在共享内存、消息队列、信号量使用某种介质来通信时，用来区分这种介质
@@ -27,6 +29,7 @@ int main(void)
 		perror("shmget error");
 		return -1;
 	}
+	printf("shmid = %d\n",shmid);
 	system("ipcs -m");
 
 	void *addr = shmat(shmid,NULL,0);//建立共享内存的映射关系
@@ -35,24 +38,24 @@ int main(void)
 		return -1;
 	}
 
-	printf("bug_test-3\n");
 	char *src = "hello shmat\n";
-	printf("%d\n",strlen(src));
 	memcpy(addr,src,strlen(src));//向共享内存写入数据
 
-	printf("bug_test-2\n");
 	char buf[SHMSIZE] = {0};
 	memcpy(buf,addr,SHMSIZE);//从共享内存读出数据
 	printf("buf = %s\n",buf);
 	
-	printf("bug_test-1\n");
+	struct shmid_ds temp = {0};
+	shmctl(shmid,IPC_STAT,&temp);
+	printf("temp.shm_atime = %ld,temp.shm_cpid = %d,getpid = %d\n",temp.shm_atime,temp.shm_cpid,getpid());
+
 	char *errmsg = NULL;
 	if(shmdt(addr) < 0){//解除映射关系
 		perror("shmdt error");
 		return -1;
 	}
 	
-	if(shmctl(shmid,IPC_RMID,NULL)){
+	if(shmctl(shmid,IPC_RMID,NULL)){//删除共享内存
 		perror("shmctl error");
 		return -1;
 	}
